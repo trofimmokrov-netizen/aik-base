@@ -31,6 +31,17 @@ export type PublicConfig = {
   email: string;
   botUsername: string;
 };
+export type PortfolioWork = {
+  id: string;
+  title: string;
+  category: string;
+  label: string;
+  image: string;
+  video?: string;
+  position: string;
+  demo: boolean;
+  description: string;
+};
 export type Order = {
   id: string;
   serviceId: string;

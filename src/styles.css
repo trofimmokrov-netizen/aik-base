@@ -1407,6 +1407,26 @@ footer {
   font-size: 12px;
   margin-block: 17px 23px;
 }
+.photo-view > video {
+  display: block;
+  width: 100%;
+  max-height: 65dvh;
+  object-fit: contain;
+  background: #101212;
+  margin-bottom: 20px;
+}
+.portfolio-grid > .project-card:only-child {
+  grid-column: 1 / -1;
+  width: 100%;
+  max-width: 680px;
+}
+.portfolio-grid > .project-card:only-child .project-image {
+  height: 350px;
+}
+.video-play {
+  color: var(--orange);
+  font-size: 16px;
+}
 .photo-view h2 {
   font-size: 26px;
 }

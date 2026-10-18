@@ -34,9 +34,13 @@ import {
   CheckCheck,
 } from "lucide-react";
 import services from "../shared/services.json";
-import portfolio from "./content/portfolio.json";
+import portfolioContent from "./content/portfolio.json";
+import site from "../shared/site.json";
 import { api } from "./api";
 import type { EstimateInput, Estimate, Order, PublicConfig } from "./types";
+import type { PortfolioWork } from "./types";
+
+const portfolio: PortfolioWork[] = portfolioContent;
 
 const asset = (name: string) => `${import.meta.env.BASE_URL}${name}`;
 const initialInput: EstimateInput = {
@@ -404,7 +408,9 @@ function App() {
   const visibleWorks = portfolio.filter(
     (work) => filter === "all" || work.category === filter,
   );
-  const botUrl = "https://t.me/AikBaseOrder_Bot";
+  const botUrl = `https://t.me/${site.botUsername}`;
+  const phone = config?.phone || site.phone;
+  const phoneDisplay = phone === site.phone ? site.phoneDisplay : phone;
   const realWorks = portfolio.some((work) => !work.demo);
 
   function saveReceipt() {
@@ -634,7 +640,7 @@ function App() {
                     <>
                       Проекты, в которых идеи обрели форму.
                       <br />
-                      Фотографии и детали наших работ.
+                      Материалы с объектов и детали наших работ.
                     </>
                   ) : (
                     <>
@@ -660,9 +666,12 @@ function App() {
             >
               {[
                 ["all", "Все направления"],
-                ["canopies", "Навесы"],
-                ["welding", "Сварка"],
-                ["structures", "Конструкции"],
+                ...[...new Set(portfolio.map((work) => work.category))].map(
+                  (category) => [
+                    category,
+                    portfolio.find((work) => work.category === category)!.label,
+                  ],
+                ),
               ].map(([value, label]) => (
                 <button
                   key={value}
@@ -694,10 +703,23 @@ function App() {
                       loading="lazy"
                     />
                     <span className="project-demo">
-                      {work.demo ? "ИЛЛЮСТРАЦИЯ" : "ФОТО ПРОЕКТА"}
+                      {work.demo
+                        ? "ИЛЛЮСТРАЦИЯ"
+                        : work.video
+                          ? "ВИДЕО С ОБЪЕКТА"
+                          : "ФОТО ПРОЕКТА"}
                     </span>
                     <span className="project-expand">
-                      <MoveUpRight size={22} />
+                      {work.video ? (
+                        <span
+                          className="video-play"
+                          aria-label="Смотреть видео"
+                        >
+                          ▶
+                        </span>
+                      ) : (
+                        <MoveUpRight size={22} />
+                      )}
                     </span>
                   </div>
                   <div className="project-info">
@@ -972,6 +994,7 @@ function App() {
             </div>
             <div className="footer-column">
               <span>НА СВЯЗИ</span>
+              <a href={`tel:${phone.replace(/[^+\d]/g, "")}`}>{phoneDisplay}</a>
               <a href={botUrl} target="_blank" rel="noopener noreferrer">
                 Telegram <ArrowUpRight size={14} />
               </a>
@@ -1271,16 +1294,33 @@ function App() {
       <Modal
         open={!!photo}
         onClose={() => setPhoto(null)}
-        label="Просмотр иллюстрации"
+        label="Просмотр проекта"
         wide
       >
         {photo && (
           <div className="photo-view">
-            <img src={asset(photo.image)} alt={photo.description} />
+            {photo.video ? (
+              <video
+                key={photo.id}
+                controls
+                playsInline
+                preload="metadata"
+                poster={asset(photo.image)}
+                aria-label={photo.title}
+              >
+                <source src={asset(photo.video)} type="video/mp4" />
+                Ваш браузер не поддерживает видео.{" "}
+                <a href={asset(photo.video)}>Открыть видео</a>
+              </video>
+            ) : (
+              <img src={asset(photo.image)} alt={photo.description} />
+            )}
             <span className="demo-label">
               {photo.demo
                 ? "ИЛЛЮСТРАЦИЯ · НЕ ВЫПОЛНЕННЫЙ ЗАКАЗ"
-                : "ФОТОГРАФИЯ ПРОЕКТА"}
+                : photo.video
+                  ? "ВИДЕО С ОБЪЕКТА"
+                  : "ФОТОГРАФИЯ ПРОЕКТА"}
             </span>
             <h2>{photo.title}</h2>
             <p>{photo.description}</p>
@@ -1304,8 +1344,8 @@ function App() {
         <div className="eyebrow">ДАВАЙТЕ ОБСУДИМ</div>
         <h2>На связи.</h2>
         <p className="modal-intro">
-          Начните с заявки в приложении. Укажите контакт — мастер сможет
-          связаться с вами, когда уведомления будут подключены.
+          Позвоните мастеру, чтобы обсудить задачу, или оставьте заявку с
+          размерами и пожеланиями.
         </p>
         <a
           className="button button-primary full-width"
@@ -1315,12 +1355,12 @@ function App() {
         >
           <Send size={18} /> @AikBaseOrder_Bot
         </a>
-        {config?.phone && (
+        {phone && (
           <a
             className="contact-detail"
-            href={`tel:${config.phone.replace(/[^+\d]/g, "")}`}
+            href={`tel:${phone.replace(/[^+\d]/g, "")}`}
           >
-            {config.phone}
+            {phoneDisplay}
           </a>
         )}
         {config?.email && (

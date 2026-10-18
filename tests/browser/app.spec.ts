@@ -23,17 +23,54 @@ test("navigation, services, portfolio filters and accessible gallery", async ({
     .getByRole("navigation")
     .getByRole("link", { name: "Проекты", exact: true })
     .click();
-  await page.getByRole("button", { name: "Навесы", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Лестницы и перила", exact: true })
+    .click();
   await expect(page.locator(".project-card")).toHaveCount(1);
   await page.locator(".project-card").click();
-  const gallery = page.getByRole("dialog", { name: "Просмотр иллюстрации" });
+  const gallery = page.getByRole("dialog", { name: "Просмотр проекта" });
   await expect(gallery).toBeVisible();
-  await expect(gallery).toContainText("НЕ ВЫПОЛНЕННЫЙ ЗАКАЗ");
+  await expect(gallery).toContainText("ВИДЕО С ОБЪЕКТА");
+  const video = gallery.locator("video");
+  await expect(video).toBeVisible();
+  await expect
+    .poll(() => video.evaluate((el) => (el as HTMLVideoElement).readyState))
+    .toBeGreaterThanOrEqual(1);
+  await video.evaluate(async (el) => {
+    const player = el as HTMLVideoElement;
+    player.muted = true;
+    await player.play();
+  });
+  await expect
+    .poll(() => video.evaluate((el) => (el as HTMLVideoElement).paused))
+    .toBe(false);
+  const media = await page.request.get("./media/staircase-platform.mp4", {
+    headers: { Range: "bytes=0-1023" },
+  });
+  expect(media.status()).toBe(206);
+  expect((await media.body()).length).toBe(1024);
   await page.keyboard.press("Escape");
   await expect(gallery).not.toBeVisible();
   await page.getByRole("button", { name: "Все направления" }).click();
-  await expect(page.locator(".project-card")).toHaveCount(3);
+  await expect(page.locator(".project-card")).toHaveCount(1);
   expect(errors).toEqual([]);
+});
+test("public phone stays available when the API is offline", async ({
+  page,
+}) => {
+  await page.route("**/api/config", (route) => route.abort());
+  await page.goto("./");
+  await expect(page.locator('footer a[href="tel:+79349999779"]')).toHaveText(
+    "+7 934 999-97-79",
+  );
+  await page
+    .locator("footer")
+    .getByRole("button", { name: "Контакты мастера" })
+    .click();
+  const contact = page.getByRole("dialog", { name: "Контакты мастера" });
+  await expect(
+    contact.getByRole("link", { name: "+7 934 999-97-79" }),
+  ).toHaveAttribute("href", "tel:+79349999779");
 });
 test("calculator uses API, browser creates an order and retrieves its actual status", async ({
   page,

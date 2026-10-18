@@ -1,4 +1,9 @@
 import path from "node:path";
+import { readFileSync } from "node:fs";
+
+const site = JSON.parse(
+  readFileSync(new URL("../shared/site.json", import.meta.url), "utf8"),
+);
 
 export function loadConfig(env = process.env) {
   const production = env.NODE_ENV === "production";
@@ -41,7 +46,7 @@ export function loadConfig(env = process.env) {
     adminChatId,
     miniAppUrl,
     publicApiUrl: env.PUBLIC_API_URL || "",
-    phone: env.CONTACT_PHONE || "",
-    email: env.CONTACT_EMAIL || "",
+    phone: env.CONTACT_PHONE || site.phone,
+    email: env.CONTACT_EMAIL || site.email,
   };
 }

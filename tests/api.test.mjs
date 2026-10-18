@@ -89,6 +89,18 @@ test("health checks database and services expose eight configured directions", a
   assert.equal(health.data.storage, "sqlite");
   const catalogue = await request("/services");
   assert.equal(catalogue.data.services.length, 8);
+  assert.equal((await request("/config")).data.phone, "+79349999779");
+  const contactReply = commandReply(
+    {
+      message: {
+        text: "/contact",
+        chat: { id: 101, type: "private" },
+        from: { id: 101 },
+      },
+    },
+    config,
+  );
+  assert.ok(contactReply.text.includes("+79349999779"));
   assert.equal(health.headers.get("cache-control"), "no-store");
 });
 test("estimates never fabricate rates; configured calculation uses dimensions, multiplier and visit", async () => {
