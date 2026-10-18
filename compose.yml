@@ -1,6 +1,10 @@
 services:
   aik-base:
-    build: .
+    build:
+      context: .
+      args:
+        VITE_APP_MODE: ${VITE_APP_MODE:-static}
+        VITE_API_URL: ${VITE_API_URL:-}
     init: true
     restart: unless-stopped
     ports:

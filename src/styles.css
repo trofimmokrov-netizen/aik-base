@@ -1427,6 +1427,22 @@ footer {
   color: var(--orange);
   font-size: 16px;
 }
+.draft-text {
+  min-height: 285px;
+  line-height: 1.7;
+}
+.draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.draft-actions .button {
+  flex: 1 1 200px;
+  gap: 12px;
+}
+.draft-back {
+  margin-top: 22px;
+}
 .photo-view h2 {
   font-size: 26px;
 }

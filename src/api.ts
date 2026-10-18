@@ -1,4 +1,5 @@
 import type { EstimateInput, Estimate, PublicConfig, Order } from "./types";
+import { telegramInitData } from "./telegram";
 
 const base = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 export class ApiError extends Error {
@@ -12,7 +13,7 @@ export class ApiError extends Error {
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   if (options.body) headers.set("Content-Type", "application/json");
-  const initData = window.Telegram?.WebApp?.initData;
+  const initData = telegramInitData();
   if (initData && !headers.has("Authorization"))
     headers.set("Authorization", `tma ${initData}`);
   let response: Response;

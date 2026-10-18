@@ -33,10 +33,16 @@ import {
   Copy,
   CheckCheck,
 } from "lucide-react";
-import services from "../shared/services.json";
+import services from "../shared/services.json" with { type: "json" };
 import portfolioContent from "./content/portfolio.json";
 import site from "../shared/site.json";
 import { api } from "./api";
+import { SERVER_ENABLED } from "./mode";
+import { initializeTelegram, telegramInitData } from "./telegram";
+import { formatDraft, downloadText } from "./draft";
+import { orderSchema } from "../shared/validation.mjs";
+import { calculateEstimate } from "../shared/estimate.mjs";
+import rates from "../shared/rates.json";
 import type { EstimateInput, Estimate, Order, PublicConfig } from "./types";
 import type { PortfolioWork } from "./types";
 
@@ -87,8 +93,12 @@ const faq = [
     "В форме можно выбрать сталь, нержавеющую сталь или алюминий. Подходящую технологию и доступность работы с конкретным материалом мастер уточнит до согласования заказа.",
   ],
   [
-    "Как отследить свою заявку?",
-    "После отправки откройте «Мои заявки» в той же вкладке. В Mini App заявки, оформленные с подтверждённой Telegram-авторизацией, доступны вашему аккаунту.",
+    SERVER_ENABLED
+      ? "Как отследить свою заявку?"
+      : "Как передать заявку мастеру?",
+    SERVER_ENABLED
+      ? "После отправки откройте «Мои заявки» в той же вкладке. В Mini App заявки, оформленные с подтверждённой Telegram-авторизацией, доступны вашему аккаунту."
+      : "Заполните форму и подготовьте текст заявки. Скопируйте его в переписку с мастером или отправьте SMS на указанный номер. Сам сайт ничего не отправляет. Уточнить получение, цену и сроки можно по телефону.",
   ],
 ];
 
@@ -269,6 +279,14 @@ function App() {
     accessToken: string;
   } | null>(null);
   const [submitError, setSubmitError] = useState("");
+  const [draftText, setDraftText] = useState("");
+  const [draftNotice, setDraftNotice] = useState("");
+  const [draftValues, setDraftValues] = useState<{
+    name: string;
+    contact: string;
+    description: string;
+    comment: string;
+  } | null>(null);
   const [sending, setSending] = useState(false);
   const [trackingId, setTrackingId] = useState("");
   const [trackingKey, setTrackingKey] = useState("");
@@ -277,25 +295,20 @@ function App() {
   const [trackingLoading, setTrackingLoading] = useState(false);
   const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [copied, setCopied] = useState(false);
-  const idempotency = useRef(crypto.randomUUID());
+  const idempotency = useRef("");
   const submittedBody = useRef("");
   const estimateVersion = useRef(0);
 
   useEffect(() => {
-    api
-      .config()
-      .then((data) => {
-        setConfig(data);
-        setApiState("online");
-      })
-      .catch(() => setApiState("offline"));
-    const webApp = window.Telegram?.WebApp;
-    if (webApp?.initData) {
-      webApp.ready();
-      webApp.expand();
-      webApp.setHeaderColor?.("#141616");
-      webApp.setBackgroundColor?.("#141616");
-    }
+    if (SERVER_ENABLED)
+      api
+        .config()
+        .then((data) => {
+          setConfig(data);
+          setApiState("online");
+        })
+        .catch(() => setApiState("offline"));
+    void initializeTelegram();
     try {
       const last = sessionStorage.getItem("aik-last-order");
       if (last) setTrackingId(last);
@@ -305,7 +318,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!tracking || !window.Telegram?.WebApp?.initData) return;
+    if (!SERVER_ENABLED || !tracking || !telegramInitData()) return;
     api
       .myOrders()
       .then(({ orders }) => setMyOrders(orders))
@@ -321,6 +334,9 @@ function App() {
   function openOrder(serviceId?: string) {
     if (serviceId) changeInput({ ...input, serviceId });
     setSuccess(null);
+    setDraftText("");
+    setDraftNotice("");
+    setDraftValues(null);
     setSubmitError("");
     setOrderOpen(true);
     setMenuOpen(false);
@@ -335,7 +351,9 @@ function App() {
     const snapshot = { ...input };
     const version = estimateVersion.current;
     try {
-      const result = await api.estimate(snapshot);
+      const result = SERVER_ENABLED
+        ? await api.estimate(snapshot)
+        : calculateEstimate(snapshot, rates);
       if (version === estimateVersion.current) setEstimate(result);
     } catch (error) {
       if (version === estimateVersion.current)
@@ -350,16 +368,31 @@ function App() {
     const data = new FormData(e.currentTarget);
     const payload = {
       ...input,
-      name: String(data.get("name") || ""),
-      contact: String(data.get("contact") || ""),
-      description: String(data.get("description") || ""),
-      comment: String(data.get("comment") || ""),
+      name: String(data.get("name") || "").trim(),
+      contact: String(data.get("contact") || "").trim(),
+      description: String(data.get("description") || "").trim(),
+      comment: String(data.get("comment") || "").trim(),
       consent: data.get("consent") === "on",
       website: String(data.get("website") || ""),
     };
+    if (!SERVER_ENABLED) {
+      const parsed = orderSchema.safeParse(payload);
+      if (!parsed.success) {
+        setSubmitError(
+          "Проверьте имя, контакт, описание и размеры. Контакт — телефон, email или Telegram @username.",
+        );
+        return;
+      }
+      setDraftValues(payload);
+      setDraftText(formatDraft(payload));
+      setDraftNotice("");
+      setSubmitError("");
+      return;
+    }
     const encoded = JSON.stringify(payload);
+    if (!idempotency.current) idempotency.current = crypto.randomUUID();
     if (submittedBody.current && submittedBody.current !== encoded)
-      idempotency.current = crypto.randomUUID();
+      idempotency.current = "";
     submittedBody.current = encoded;
     setSending(true);
     setSubmitError("");
@@ -462,15 +495,17 @@ function App() {
             <a href="#calculator" onClick={navigate}>
               Калькулятор
             </a>
-            <button
-              className="nav-orders"
-              onClick={() => {
-                setTracking(true);
-                navigate();
-              }}
-            >
-              Мои заявки
-            </button>
+            {SERVER_ENABLED && (
+              <button
+                className="nav-orders"
+                onClick={() => {
+                  setTracking(true);
+                  navigate();
+                }}
+              >
+                Мои заявки
+              </button>
+            )}
           </nav>
           <button className="button header-cta" onClick={() => openOrder()}>
             Обсудить проект <ArrowUpRight size={17} />
@@ -885,7 +920,8 @@ function App() {
                 <Send size={58} strokeWidth={1.5} />
               </div>
               <span className="floating-tag tag-one">
-                <Check size={14} /> Задача принята
+                <Check size={14} />{" "}
+                {SERVER_ENABLED ? "Задача принята" : "Параметры собраны"}
               </span>
               <span className="floating-tag tag-two">
                 <Flame size={14} /> AIK BASE / MINI APP
@@ -898,23 +934,38 @@ function App() {
               <h2>
                 Ваш проект.
                 <br />
-                <span className="muted">Теперь в Telegram.</span>
+                <span className="muted">Напрямую мастеру.</span>
               </h2>
               <p>
-                Те же услуги и калькулятор — прямо в мессенджере.
-                <br />
-                Оформляйте заявки и следите за их статусом
-                <br className="desktop-break" /> в AIK BASE Mini App.
+                {SERVER_ENABLED ? (
+                  <>
+                    Те же услуги и калькулятор — прямо в мессенджере.
+                    <br />
+                    Оформляйте заявки и следите за их статусом
+                    <br className="desktop-break" /> в AIK BASE Mini App.
+                  </>
+                ) : (
+                  <>
+                    Соберите параметры проекта в удобной форме.
+                    <br />
+                    Скопируйте текст, отправьте его мастеру
+                    <br className="desktop-break" /> или обсудите всё по
+                    телефону.
+                  </>
+                )}
               </p>
               <a
                 className="button button-primary"
-                href={botUrl}
+                href={SERVER_ENABLED ? botUrl : `tel:${phone}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Открыть Telegram-бота <ArrowUpRight size={20} />
+                {SERVER_ENABLED ? "Открыть Telegram-бота" : "Позвонить мастеру"}{" "}
+                <ArrowUpRight size={20} />
               </a>
-              <small className="telegram-handle">@AikBaseOrder_Bot</small>
+              <small className="telegram-handle">
+                {SERVER_ENABLED ? "@AikBaseOrder_Bot" : phoneDisplay}
+              </small>
             </div>
           </div>
         </section>
@@ -995,11 +1046,15 @@ function App() {
             <div className="footer-column">
               <span>НА СВЯЗИ</span>
               <a href={`tel:${phone.replace(/[^+\d]/g, "")}`}>{phoneDisplay}</a>
-              <a href={botUrl} target="_blank" rel="noopener noreferrer">
-                Telegram <ArrowUpRight size={14} />
-              </a>
+              {SERVER_ENABLED && (
+                <a href={botUrl} target="_blank" rel="noopener noreferrer">
+                  Telegram <ArrowUpRight size={14} />
+                </a>
+              )}
               <button onClick={() => setContact(true)}>Контакты мастера</button>
-              <button onClick={() => setTracking(true)}>Мои заявки</button>
+              {SERVER_ENABLED && (
+                <button onClick={() => setTracking(true)}>Мои заявки</button>
+              )}
             </div>
             <div className="footer-statement">
               СДЕЛАНО
@@ -1027,7 +1082,98 @@ function App() {
         label="Оформить заявку"
         wide
       >
-        {success ? (
+        {draftText ? (
+          <div className="draft-screen">
+            <div className="eyebrow">ТЕКСТ ЗАЯВКИ ГОТОВ</div>
+            <h2>Осталось передать мастеру.</h2>
+            <p className="notice">
+              Заявка ещё не отправлена. Скопируйте текст в переписку с мастером
+              или отправьте SMS. Получение, цену и сроки можно уточнить по
+              телефону.
+            </p>
+            <label className="field">
+              Текст заявки
+              <textarea
+                className="draft-text"
+                value={draftText}
+                readOnly
+                rows={12}
+              />
+            </label>
+            <div className="draft-actions">
+              <button
+                className="button button-primary"
+                onClick={async () => {
+                  try {
+                    if (!navigator.clipboard) throw new Error();
+                    await navigator.clipboard.writeText(draftText);
+                    setDraftNotice(
+                      "Текст скопирован. Отправьте его мастеру самостоятельно.",
+                    );
+                  } catch {
+                    setDraftNotice(
+                      "Выделите и скопируйте текст вручную или сохраните его файлом.",
+                    );
+                  }
+                }}
+              >
+                <Copy size={17} />
+                Скопировать текст
+              </button>
+              <button
+                className="button button-outline"
+                onClick={() => downloadText(draftText)}
+              >
+                <ArrowDown size={17} />
+                Сохранить текст
+              </button>
+              <a
+                className="button button-outline"
+                href={`sms:${phone}?body=${encodeURIComponent(draftText)}`}
+              >
+                <Send size={17} />
+                Открыть SMS
+              </a>
+              <a className="button button-outline" href={`tel:${phone}`}>
+                Позвонить мастеру <ArrowUpRight size={17} />
+              </a>
+              {typeof navigator.share === "function" && (
+                <button
+                  className="button button-outline"
+                  onClick={async () => {
+                    try {
+                      await navigator.share({
+                        title: "Заявка AIK BASE",
+                        text: draftText,
+                      });
+                    } catch (error) {
+                      if ((error as Error).name !== "AbortError")
+                        setDraftNotice(
+                          "Не удалось открыть отправку. Скопируйте или сохраните текст.",
+                        );
+                    }
+                  }}
+                >
+                  Поделиться <ArrowUpRight size={17} />
+                </button>
+              )}
+            </div>
+            {draftNotice && (
+              <p className="notice" role="status">
+                {draftNotice}
+              </p>
+            )}
+            <button
+              className="text-link draft-back"
+              onClick={() => {
+                setDraftText("");
+                setDraftNotice("");
+              }}
+            >
+              Вернуться к форме <ArrowRight size={16} />
+            </button>
+          </div>
+        ) : success ? (
           <div className="success-screen">
             <span className="success-icon">
               <CheckCheck size={35} />
@@ -1082,7 +1228,14 @@ function App() {
             <p className="modal-intro">
               Заполните детали — они помогут мастеру подготовиться к разговору.
             </p>
-            {apiState === "offline" && (
+            {!SERVER_ENABLED && (
+              <div className="notice">
+                Форма подготовит текст заявки на вашем устройстве. Затем вы сами
+                отправите его мастеру. Автоматической отправки и отслеживания
+                статуса здесь нет.
+              </div>
+            )}
+            {SERVER_ENABLED && apiState === "offline" && (
               <div className="notice" role="status">
                 API сейчас недоступно. Отправка заявки может не работать. Можно
                 написать в{" "}
@@ -1092,12 +1245,14 @@ function App() {
                 .
               </div>
             )}
-            {apiState === "online" && !config?.notificationsReady && (
-              <div className="notice">
-                Уведомления мастеру пока не подключены. Заявка сохранится на
-                сервере; для связи также используйте Telegram.
-              </div>
-            )}
+            {SERVER_ENABLED &&
+              apiState === "online" &&
+              !config?.notificationsReady && (
+                <div className="notice">
+                  Уведомления мастеру пока не подключены. Заявка сохранится на
+                  сервере; для связи также используйте Telegram.
+                </div>
+              )}
             <form
               className="order-form"
               onSubmit={submitOrder}
@@ -1111,6 +1266,7 @@ function App() {
                     Ваше имя
                     <input
                       name="name"
+                      defaultValue={draftValues?.name || ""}
                       autoComplete="name"
                       required
                       minLength={2}
@@ -1122,6 +1278,7 @@ function App() {
                     Телефон, email или Telegram
                     <input
                       name="contact"
+                      defaultValue={draftValues?.contact || ""}
                       required
                       minLength={5}
                       maxLength={160}
@@ -1134,6 +1291,7 @@ function App() {
                   Что нужно сделать?
                   <textarea
                     name="description"
+                    defaultValue={draftValues?.description || ""}
                     required
                     minLength={10}
                     maxLength={3000}
@@ -1146,6 +1304,7 @@ function App() {
                   <span className="optional">необязательно</span>
                   <textarea
                     name="comment"
+                    defaultValue={draftValues?.comment || ""}
                     maxLength={1000}
                     rows={2}
                     placeholder="Адрес объекта, удобное время или другие детали"
@@ -1160,7 +1319,9 @@ function App() {
                 <label className="check-field consent-field">
                   <input name="consent" type="checkbox" required />
                   <span>
-                    Согласен на обработку указанных данных для ответа на заявку.{" "}
+                    {SERVER_ENABLED
+                      ? "Согласен на обработку указанных данных для ответа на заявку."
+                      : "Понимаю, что текст нужно самостоятельно передать мастеру."}{" "}
                     <button
                       type="button"
                       className="inline-link"
@@ -1187,12 +1348,18 @@ function App() {
                     </>
                   ) : (
                     <>
-                      Отправить заявку <ArrowUpRight size={20} />
+                      {SERVER_ENABLED
+                        ? "Отправить заявку"
+                        : "Подготовить текст заявки"}{" "}
+                      <ArrowUpRight size={20} />
                     </>
                   )}
                 </button>
                 <p className="form-footnote">
-                  <ShieldCheck size={14} /> Данные доступны только вам и мастеру
+                  <ShieldCheck size={14} />{" "}
+                  {SERVER_ENABLED
+                    ? "Данные доступны только вам и мастеру"
+                    : "Данные формы не отправляются на сервер"}
                 </p>
               </fieldset>
             </form>
@@ -1200,96 +1367,100 @@ function App() {
         )}
       </Modal>
 
-      <Modal
-        open={tracking}
-        onClose={() => setTracking(false)}
-        label="Мои заявки"
-      >
-        <div className="eyebrow">НА СВЯЗИ С ПРОЕКТОМ</div>
-        <h2>Мои заявки</h2>
-        <p className="modal-intro">
-          Заявки доступны в исходной вкладке или в вашем Telegram-аккаунте.
-        </p>
-        {myOrders.length > 0 && (
-          <div className="my-orders">
-            {myOrders.map((order) => (
-              <button
-                key={order.id}
-                onClick={() => {
-                  setTrackingId(order.id);
-                  setTracked(order);
-                }}
-              >
-                <span>
-                  {services.find((s) => s.id === order.serviceId)?.title}
-                  <small>
-                    {new Date(order.createdAt).toLocaleDateString("ru-RU")}
-                  </small>
-                </span>
-                <span className="status-badge">
-                  {statusNames[order.status] || order.status}
-                </span>
-                <ChevronRight size={16} />
-              </button>
-            ))}
-          </div>
-        )}
-        <form onSubmit={findOrder}>
-          <label className="field">
-            Номер заявки
-            <input
-              value={trackingId}
-              onChange={(e) => setTrackingId(e.target.value)}
-              placeholder="Вставьте полный номер заявки"
-              required
-              maxLength={36}
-            />
-          </label>
-          <label className="field">
-            Личный ключ доступа{" "}
-            <span className="optional">если открыли новую вкладку</span>
-            <input
-              type="password"
-              autoComplete="off"
-              value={trackingKey}
-              onChange={(e) => setTrackingKey(e.target.value)}
-              placeholder="Из сохранённого файла доступа"
-              maxLength={128}
-            />
-          </label>
-          <button
-            className="button button-primary full-width"
-            disabled={trackingLoading}
-          >
-            {trackingLoading ? (
-              <LoaderCircle size={18} className="spin" />
-            ) : (
-              <Clock3 size={18} />
-            )}{" "}
-            Проверить статус
-          </button>
-        </form>
-        {trackingError && (
-          <p className="form-error" role="alert">
-            {trackingError}
+      {SERVER_ENABLED && (
+        <Modal
+          open={tracking}
+          onClose={() => setTracking(false)}
+          label="Мои заявки"
+        >
+          <div className="eyebrow">НА СВЯЗИ С ПРОЕКТОМ</div>
+          <h2>Мои заявки</h2>
+          <p className="modal-intro">
+            Заявки доступны в исходной вкладке или в вашем Telegram-аккаунте.
           </p>
-        )}
-        {tracked && (
-          <div className="tracked-order" aria-live="polite">
-            <span className="status-badge">
-              {statusNames[tracked.status] || tracked.status}
-            </span>
-            <h3>{services.find((s) => s.id === tracked.serviceId)?.title}</h3>
-            <p>{tracked.description}</p>
-            <small>{new Date(tracked.createdAt).toLocaleString("ru-RU")}</small>
-            <p className="form-footnote">
-              {tracked.notificationStatus === "sent"
-                ? "Уведомление мастеру отправлено."
-                : "Уведомление мастеру ожидает отправки."}
+          {myOrders.length > 0 && (
+            <div className="my-orders">
+              {myOrders.map((order) => (
+                <button
+                  key={order.id}
+                  onClick={() => {
+                    setTrackingId(order.id);
+                    setTracked(order);
+                  }}
+                >
+                  <span>
+                    {services.find((s) => s.id === order.serviceId)?.title}
+                    <small>
+                      {new Date(order.createdAt).toLocaleDateString("ru-RU")}
+                    </small>
+                  </span>
+                  <span className="status-badge">
+                    {statusNames[order.status] || order.status}
+                  </span>
+                  <ChevronRight size={16} />
+                </button>
+              ))}
+            </div>
+          )}
+          <form onSubmit={findOrder}>
+            <label className="field">
+              Номер заявки
+              <input
+                value={trackingId}
+                onChange={(e) => setTrackingId(e.target.value)}
+                placeholder="Вставьте полный номер заявки"
+                required
+                maxLength={36}
+              />
+            </label>
+            <label className="field">
+              Личный ключ доступа{" "}
+              <span className="optional">если открыли новую вкладку</span>
+              <input
+                type="password"
+                autoComplete="off"
+                value={trackingKey}
+                onChange={(e) => setTrackingKey(e.target.value)}
+                placeholder="Из сохранённого файла доступа"
+                maxLength={128}
+              />
+            </label>
+            <button
+              className="button button-primary full-width"
+              disabled={trackingLoading}
+            >
+              {trackingLoading ? (
+                <LoaderCircle size={18} className="spin" />
+              ) : (
+                <Clock3 size={18} />
+              )}{" "}
+              Проверить статус
+            </button>
+          </form>
+          {trackingError && (
+            <p className="form-error" role="alert">
+              {trackingError}
             </p>
-          </div>
-        )}
-      </Modal>
+          )}
+          {tracked && (
+            <div className="tracked-order" aria-live="polite">
+              <span className="status-badge">
+                {statusNames[tracked.status] || tracked.status}
+              </span>
+              <h3>{services.find((s) => s.id === tracked.serviceId)?.title}</h3>
+              <p>{tracked.description}</p>
+              <small>
+                {new Date(tracked.createdAt).toLocaleString("ru-RU")}
+              </small>
+              <p className="form-footnote">
+                {tracked.notificationStatus === "sent"
+                  ? "Уведомление мастеру отправлено."
+                  : "Уведомление мастеру ожидает отправки."}
+              </p>
+            </div>
+          )}
+        </Modal>
+      )}
 
       <Modal
         open={!!photo}
@@ -1347,14 +1518,16 @@ function App() {
           Позвоните мастеру, чтобы обсудить задачу, или оставьте заявку с
           размерами и пожеланиями.
         </p>
-        <a
-          className="button button-primary full-width"
-          href={botUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Send size={18} /> @AikBaseOrder_Bot
-        </a>
+        {SERVER_ENABLED && (
+          <a
+            className="button button-primary full-width"
+            href={botUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Send size={18} /> @AikBaseOrder_Bot
+          </a>
+        )}
         {phone && (
           <a
             className="contact-detail"
@@ -1369,8 +1542,9 @@ function App() {
           </a>
         )}
         <p className="form-footnote">
-          Чат с ботом не является прямым чатом мастера. Для передачи задачи
-          используйте форму заявки.
+          {SERVER_ENABLED
+            ? "Чат с ботом не является прямым чатом мастера. Для передачи задачи используйте форму заявки."
+            : "Форма подготовит текст заявки. Передайте его мастеру самостоятельно или обсудите задачу по телефону."}
         </p>
         <button
           className="button button-outline full-width"
@@ -1390,29 +1564,52 @@ function App() {
         <div className="eyebrow">ВАШИ ДАННЫЕ</div>
         <h2>Только для дела.</h2>
         <div className="privacy-copy">
-          <p>
-            Форма запрашивает имя, контакт, параметры проекта и описание задачи.
-            Они используются для обработки заявки и обратной связи. В Mini App
-            после проверки авторизации к заявке привязывается числовой Telegram
-            ID.
-          </p>
-          <p>
-            Данные хранятся в базе сервера. При подключённом боте информация о
-            заявке передаётся администратору через Telegram. Другие посетители
-            не могут просматривать заявки без личного ключа доступа или
-            авторизации владельца.
-          </p>
-          <p>
-            Не указывайте паспортные данные, платёжные реквизиты и другую
-            чувствительную информацию. Для уточнения или удаления заявки
-            свяжитесь с мастером и укажите номер заявки.
-          </p>
-          <div className="notice">
-            Перед публичным приёмом заказов владелец должен указать свои
-            реквизиты, контакт для обращений, сроки хранения и применимые
-            правила обработки данных. Сейчас это информационное описание работы
-            формы.
-          </div>
+          {!SERVER_ENABLED ? (
+            <>
+              <p>
+                Форма помогает составить текст заявки: имя, контакт, параметры
+                проекта и описание задачи. Данные обрабатываются только в
+                открытой странице и не отправляются в базу данных или боту.
+              </p>
+              <p>
+                Текст передаётся другому приложению только по вашему действию:
+                копированию, открытию SMS или кнопке «Поделиться». Сайт не
+                проверяет и не подтверждает отправку или получение мастером.
+              </p>
+              <p>
+                Не указывайте паспортные или платёжные данные. Скачанный файл
+                остаётся на вашем устройстве; удалите его, когда он больше не
+                нужен. Уточнить вопросы по заявке можно по телефону{" "}
+                {phoneDisplay}.
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                Форма запрашивает имя, контакт, параметры проекта и описание
+                задачи. Они используются для обработки заявки и обратной связи.
+                В Mini App после проверки авторизации к заявке привязывается
+                числовой Telegram ID.
+              </p>
+              <p>
+                Данные хранятся в базе сервера. При подключённом боте информация
+                о заявке передаётся администратору через Telegram. Другие
+                посетители не могут просматривать заявки без личного ключа
+                доступа или авторизации владельца.
+              </p>
+              <p>
+                Не указывайте паспортные данные, платёжные реквизиты и другую
+                чувствительную информацию. Для уточнения или удаления заявки
+                свяжитесь с мастером и укажите номер заявки.
+              </p>
+              <div className="notice">
+                Перед публичным приёмом заказов владелец должен указать свои
+                реквизиты, контакт для обращений, сроки хранения и применимые
+                правила обработки данных. Сейчас это информационное описание
+                работы формы.
+              </div>
+            </>
+          )}
         </div>
       </Modal>
     </>

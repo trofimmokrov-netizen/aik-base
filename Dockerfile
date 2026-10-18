@@ -7,7 +7,9 @@ RUN --mount=type=secret,id=build_ca \
     npm ci --no-audit --no-fund
 COPY . .
 ARG VITE_API_URL=
+ARG VITE_APP_MODE=static
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_APP_MODE=$VITE_APP_MODE
 RUN npm run build && npm prune --omit=dev --no-audit --no-fund
 
 FROM node:24-bookworm-slim

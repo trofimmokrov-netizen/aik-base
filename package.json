@@ -8,12 +8,15 @@
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "dev:connected": "vite --mode server --host 0.0.0.0",
     "dev:server": "node --env-file-if-exists=.env --watch server/index.mjs",
     "build": "tsc -b && vite build",
+    "build:server": "tsc -b && vite build --mode server",
     "start": "node --env-file-if-exists=.env server/index.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test tests/api.test.mjs",
     "test:e2e": "playwright test",
+    "test:e2e:server": "playwright test --config playwright.server.config.ts",
     "telegram:configure": "node --env-file-if-exists=.env scripts/configure-telegram.mjs"
   },
   "dependencies": {
