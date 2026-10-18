@@ -59,6 +59,7 @@ test("manual request contains project data and is never reported as sent", async
   await expect(
     dialog.getByRole("heading", { name: "Осталось передать мастеру." }),
   ).toBeVisible();
+  await expect.poll(() => dialog.evaluate(el => el.scrollTop)).toBe(0);
   await expect(dialog).toContainText("Заявка ещё не отправлена");
   await expect(dialog.getByLabel("Текст заявки")).toHaveValue(
     /Лестницы и перила/,

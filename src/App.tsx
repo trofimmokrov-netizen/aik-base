@@ -325,6 +325,13 @@ function App() {
       .catch((e) => setTrackingError(e.message));
   }, [tracking]);
 
+  useEffect(() => {
+    if (orderOpen) {
+      const dialog = document.querySelector<HTMLDialogElement>('dialog[aria-label="Оформить заявку"]');
+      if (dialog) dialog.scrollTop = 0;
+    }
+  }, [orderOpen, draftText, success]);
+
   function changeInput(next: EstimateInput) {
     estimateVersion.current++;
     setInput(next);
