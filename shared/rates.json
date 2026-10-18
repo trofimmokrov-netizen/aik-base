@@ -1,0 +1,9 @@
+{
+  "currency": "RUB",
+  "configured": false,
+  "unit": "м²",
+  "servicePerSquareMeter": {},
+  "metalMultipliers": { "steel": 1, "stainless": null, "aluminum": null },
+  "visitFee": null,
+  "minimumOrder": null
+}

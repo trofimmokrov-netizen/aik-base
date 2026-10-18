@@ -1,0 +1,32 @@
+[
+  {
+    "id": "frame",
+    "title": "Каркас навеса",
+    "category": "canopies",
+    "label": "Навесы",
+    "image": "workshop.svg",
+    "position": "center",
+    "demo": true,
+    "description": "Иллюстрация направления: металлический каркас и сварные соединения. Это не фотография выполненного заказа."
+  },
+  {
+    "id": "assembly",
+    "title": "Сварные соединения",
+    "category": "welding",
+    "label": "Сварка",
+    "image": "workshop.svg",
+    "position": "65% 68%",
+    "demo": true,
+    "description": "Визуальный пример сварочных работ. Реальные фотографии появятся после предоставления мастером."
+  },
+  {
+    "id": "structure",
+    "title": "Архитектура из металла",
+    "category": "structures",
+    "label": "Конструкции",
+    "image": "structure.svg",
+    "position": "center",
+    "demo": true,
+    "description": "Концептуальная иллюстрация металлической конструкции, не выполненный заказ."
+  }
+]
