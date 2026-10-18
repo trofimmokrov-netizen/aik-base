@@ -541,16 +541,16 @@ function App() {
         <div className="specialty-strip">
           <div className="container">
             <span>
-              <span className="small-star">✳</span> СВАРОЧНЫЕ РАБОТЫ
+              <span className="small-star">✳︎</span> СВАРОЧНЫЕ РАБОТЫ
             </span>
             <span>
-              <span className="small-star">✳</span> МЕТАЛЛОКОНСТРУКЦИИ
+              <span className="small-star">✳︎</span> МЕТАЛЛОКОНСТРУКЦИИ
             </span>
             <span>
-              <span className="small-star">✳</span> ИНДИВИДУАЛЬНЫЕ РЕШЕНИЯ
+              <span className="small-star">✳︎</span> ИНДИВИДУАЛЬНЫЕ РЕШЕНИЯ
             </span>
             <span className="strip-last">
-              <span className="small-star">✳</span> ВЫЕЗД НА ОБЪЕКТ
+              <span className="small-star">✳︎</span> ВЫЕЗД НА ОБЪЕКТ
             </span>
           </div>
         </div>
@@ -981,7 +981,7 @@ function App() {
             <div className="footer-statement">
               СДЕЛАНО
               <br />С <span>ХАРАКТЕРОМ.</span>
-              <span className="footer-spark">✳</span>
+              <span className="footer-spark">✳︎</span>
             </div>
           </div>
           <div className="footer-bottom">

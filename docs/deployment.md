@@ -22,6 +22,13 @@
 
 Обновление: `docker compose up -d --build`. Не используйте `down -v` для обычного обновления: флаг `-v` удаляет хранилище заказов. Перед изменениями делайте проверенную резервную копию. Docker-конфигурация подготовлена; её запуск требует Docker на целевом сервере.
 
+В среде с корпоративным HTTPS-прокси передайте стандартные proxy-переменные и доверенный CA bundle через необязательный BuildKit secret. Сертификат не включается в образ, проверка TLS сохраняется:
+
+```sh
+docker build --build-arg HTTP_PROXY --build-arg HTTPS_PROXY --build-arg NO_PROXY \
+  --secret id=build_ca,src=/путь/к/доверенному-ca.pem -t aik-base:local .
+```
+
 ## Вариант 2: GitHub Pages + отдельный API
 
 Frontend предназначен для `https://trofimmokrov-netizen.github.io/aik-base/`; `base` Vite уже равен `/aik-base/`.
