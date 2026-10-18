@@ -20,9 +20,10 @@ try {
     commands: [
       { command: "start", description: "Открыть AIK BASE" },
       { command: "services", description: "Каталог услуг" },
-      { command: "order", description: "Оформить заявку" },
+      { command: "order", description: "Подготовить заявку" },
       { command: "contact", description: "Контакты" },
       { command: "help", description: "Помощь" },
+      { command: "id", description: "Мой Telegram ID" },
     ],
   });
   await telegramCall(config.token, "setChatMenuButton", {
