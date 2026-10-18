@@ -9,6 +9,11 @@ data/
 *.db-wal
 *.log
 *.tsbuildinfo
+.wrangler/
+.wrangler.deploy.json
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
 test-results/
 playwright-report/
 .DS_Store

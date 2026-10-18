@@ -2,5 +2,6 @@
   "phone": "+79349999779",
   "phoneDisplay": "+7 934 999-97-79",
   "email": "",
-  "botUsername": "AikBaseOrder_Bot"
+  "botUsername": "AikBaseOrder_Bot",
+  "apiUrl": ""
 }

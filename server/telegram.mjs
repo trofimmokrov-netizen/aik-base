@@ -1,4 +1,4 @@
-import { services } from "./domain.mjs";
+import services from "../shared/services.json" with { type: "json" };
 
 export async function telegramCall(token, method, body) {
   if (!token) throw new Error("telegram_not_configured");
@@ -69,6 +69,7 @@ export function commandReply(update, config, db) {
         "Контакт мастера пока не настроен. Оформите заявку в приложении и укажите способ обратной связи.",
       "/help":
         "/start — главное меню\n/services — услуги\n/order — оформить заявку\n/contact — контакты\n/help — помощь\n\nСтатус заявки доступен в приложении. Данные других клиентов недоступны.",
+      "/id": `Ваш Telegram ID: ${message.from?.id || message.chat.id}`,
     }[command] ||
     "Откройте AIK BASE, чтобы оформить заявку. Список команд: /help";
   return {

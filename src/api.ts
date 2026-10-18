@@ -1,7 +1,11 @@
 import type { EstimateInput, Estimate, PublicConfig, Order } from "./types";
 import { telegramInitData } from "./telegram";
+import site from "../shared/site.json";
 
-const base = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+const base = (import.meta.env.VITE_API_URL || site.apiUrl || "").replace(
+  /\/$/,
+  "",
+);
 export class ApiError extends Error {
   constructor(
     message: string,

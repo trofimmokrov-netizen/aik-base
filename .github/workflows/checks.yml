@@ -15,6 +15,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: npm run cf:check
+      - run: npm run test:cloudflare
       - run: npx playwright install --with-deps chromium
       - run: npm run build:server
       - run: npm run test:e2e:server

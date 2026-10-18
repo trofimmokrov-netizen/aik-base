@@ -14,7 +14,13 @@
     "build:server": "tsc -b && vite build --mode server",
     "start": "node --env-file-if-exists=.env server/index.mjs",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node --test tests/api.test.mjs",
+    "test": "node --test tests/api.test.mjs tests/cloudflare.worker.test.mjs tests/cloudflare.enable.test.mjs",
+    "test:cloudflare": "node --test tests/cloudflare.runtime.test.mjs",
+    "cf:dev": "wrangler dev --local",
+    "cf:migrate:local": "wrangler d1 migrations apply DB --local",
+    "cf:check": "wrangler deploy --dry-run",
+    "cf:deploy": "node --use-env-proxy --use-system-ca scripts/cloudflare-deploy.mjs",
+    "cf:enable": "node --use-env-proxy --use-system-ca scripts/cloudflare-enable.mjs",
     "test:e2e": "playwright test",
     "test:e2e:server": "playwright test --config playwright.server.config.ts",
     "telegram:configure": "node --env-file-if-exists=.env scripts/configure-telegram.mjs"
@@ -37,7 +43,9 @@
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "jsonc-parser": "^3.3.1",
     "typescript": "~5.9.3",
-    "vite": "^7.1.0"
+    "vite": "^7.1.0",
+    "wrangler": "^4.151.1"
   }
 }

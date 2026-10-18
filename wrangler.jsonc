@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "aik-base-api",
+  "main": "cloudflare/worker.mjs",
+  "compatibility_date": "2025-04-01",
+  "workers_dev": true,
+  "send_metrics": false,
+  "observability": { "enabled": false },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "aik-base-orders",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "cloudflare/migrations",
+    },
+  ],
+  "vars": {
+    "ALLOWED_ORIGINS": "https://trofimmokrov-netizen.github.io",
+    "MINI_APP_URL": "https://trofimmokrov-netizen.github.io/aik-base/",
+    "PUBLIC_API_URL": "",
+    "CONTACT_PHONE": "+79349999779",
+    "TELEGRAM_ADMIN_CHAT_ID": "",
+  },
+  "triggers": { "crons": ["* * * * *"] },
+}

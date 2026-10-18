@@ -1,0 +1,4 @@
+# Copy to .dev.vars only for local Worker development; this file contains no credentials.
+# Real production values belong in Cloudflare Worker Secrets, never in wrangler.jsonc.
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_WEBHOOK_SECRET=
