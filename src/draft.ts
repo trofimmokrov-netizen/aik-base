@@ -6,6 +6,7 @@ export type DraftInput = EstimateInput & {
   contact: string;
   description: string;
   comment: string;
+  sizesUnknown?: boolean;
 };
 export function formatDraft(input: DraftInput) {
   const metals: Record<string, string> = {
@@ -20,7 +21,7 @@ export function formatDraft(input: DraftInput) {
     `Имя: ${input.name}`,
     `Контакт: ${input.contact}`,
     `Металл: ${metal || input.metal}`,
-    `Размеры: ${input.width} × ${input.height} м`,
+    input.sizesUnknown ? "Размеры: пока не известны, нужна консультация" : `Размеры: ${input.width} × ${input.height} м`,
     `Количество: ${input.quantity}`,
     `Выезд: ${input.onsite ? "Нужен" : "Не нужен"}`,
     `Задача: ${input.description}`,

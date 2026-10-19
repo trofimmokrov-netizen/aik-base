@@ -76,7 +76,7 @@ test("calculator uses API, browser creates an order and retrieves its actual sta
   page,
 }) => {
   await page.goto("./");
-  await page.getByRole("button", { name: "Проверить расчёт" }).click();
+  await page.getByRole("button", { name: "Подготовить параметры для расчёта" }).click();
   await expect(page.locator(".estimate-result")).toContainText(
     "Рассчитывается индивидуально",
   );
@@ -135,7 +135,7 @@ test("failed API never displays a successful order and form remains retryable", 
     }),
   );
   await page
-    .getByRole("button", { name: "Заказать сварку", exact: true })
+    .getByRole("button", { name: "Обсудить с мастером", exact: true })
     .click();
   const dialog = page.getByRole("dialog", { name: "Оформить заявку" });
   await dialog.getByLabel("Ваше имя").fill("Проверка ошибок");

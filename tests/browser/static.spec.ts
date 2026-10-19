@@ -22,7 +22,7 @@ test("complete static site starts with unavailable API and Telegram SDK", async 
   await expect(
     page.getByRole("button", { name: "Мои заявки", exact: true }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "Проверить расчёт" }).click();
+  await page.getByRole("button", { name: "Подготовить параметры для расчёта" }).click();
   await expect(page.locator(".estimate-result")).toContainText(
     "Рассчитывается индивидуально",
   );
@@ -40,18 +40,16 @@ test("manual request contains project data and is never reported as sent", async
   });
   await page.goto("./");
   await page
-    .getByRole("button", { name: "Заказать сварку", exact: true })
+    .getByRole("button", { name: "Обсудить с мастером", exact: true })
     .click();
   const dialog = page.getByRole("dialog", { name: "Оформить заявку" });
   await dialog.getByLabel("Вид работ").selectOption("stairs");
+  await dialog.getByLabel("Что нужно сделать?").fill("Лестница и перила по индивидуальному эскизу");
+  await dialog.getByRole("button",{name:"Далее"}).click();
   await dialog.getByLabel("Длина, м").fill("3");
+  await dialog.getByRole("button",{name:"Далее"}).click();
   await dialog.getByLabel("Ваше имя").fill("Тестовый заказчик");
-  await dialog
-    .getByLabel("Телефон, email или Telegram")
-    .fill("@aik_static_test");
-  await dialog
-    .getByLabel("Что нужно сделать?")
-    .fill("Лестница и перила по индивидуальному эскизу");
+  await dialog.getByLabel("Телефон, email или Telegram").fill("@aik_static_test");
   await dialog.locator('input[name="consent"]').check();
   await dialog
     .getByRole("button", { name: "Подготовить текст заявки" })
@@ -82,7 +80,11 @@ test("manual request contains project data and is never reported as sent", async
   expect(text).toContain("Размеры: 3 × 1 м");
   expect(text).toContain("Лестница и перила по индивидуальному эскизу");
   await dialog.getByRole("button", { name: "Вернуться к форме" }).click();
+  await dialog.getByRole("button",{name:"Далее"}).click();
+  await dialog.getByRole("button",{name:"Далее"}).click();
   await expect(dialog.getByLabel("Ваше имя")).toHaveValue("Тестовый заказчик");
+  await dialog.getByRole("button",{name:"Назад",exact:true}).click();
+  await dialog.getByRole("button",{name:"Назад",exact:true}).click();
   await expect(dialog.getByLabel("Что нужно сделать?")).toHaveValue(
     "Лестница и перила по индивидуальному эскизу",
   );
@@ -92,22 +94,20 @@ test("manual request contains project data and is never reported as sent", async
 test("invalid contact cannot produce a prepared request", async ({ page }) => {
   await page.goto("./");
   await page
-    .getByRole("button", { name: "Заказать сварку", exact: true })
+    .getByRole("button", { name: "Обсудить с мастером", exact: true })
     .click();
   const dialog = page.getByRole("dialog", { name: "Оформить заявку" });
+  await dialog.getByLabel("Что нужно сделать?").fill("Нужна лестница с металлическими перилами");
+  await dialog.getByRole("button",{name:"Далее"}).click();
+  await dialog.getByRole("button",{name:"Далее"}).click();
   await dialog.getByLabel("Ваше имя").fill("Тестовый заказчик");
-  await dialog
-    .getByLabel("Телефон, email или Telegram")
-    .fill("invalid_contact");
-  await dialog
-    .getByLabel("Что нужно сделать?")
-    .fill("Нужна лестница с металлическими перилами");
+  await dialog.getByLabel("Телефон, email или Telegram").fill("invalid_contact");
   await dialog.locator('input[name="consent"]').check();
   await dialog
     .getByRole("button", { name: "Подготовить текст заявки" })
     .click();
   await expect(dialog.getByRole("alert")).toContainText(
-    "Проверьте имя, контакт",
+    "Проверьте имя и контакт",
   );
   await expect(
     dialog.getByRole("heading", { name: "Осталось передать мастеру." }),
@@ -155,3 +155,5 @@ test("static navigation, portfolio video and phone work on desktop and mobile", 
     ),
   ).toBe(true);
 });
+
+ test("portfolio reference and unknown dimensions reach the master without invented sizes",async({page,isMobile})=>{await page.goto('./');await page.locator('.portfolio-order').first().click();const dialog=page.getByRole('dialog',{name:'Оформить заявку'});await expect(dialog.getByLabel('Что нужно сделать?')).toHaveValue(/Хочу похожее: Лестница/);await dialog.getByRole('button',{name:'Далее'}).click();await dialog.getByLabel('Размеров пока нет').check();await dialog.getByRole('button',{name:'Далее'}).click();await dialog.getByLabel('Ваше имя').fill('Клиент');await dialog.getByLabel('Телефон, email или Telegram').fill('@client123');await dialog.locator('[name=consent]').check();await dialog.getByRole('button',{name:'Подготовить текст заявки'}).click();const text=await dialog.getByLabel('Текст заявки').inputValue();expect(text).toContain('Размеры: пока не известны');expect(text).not.toContain('Размеры: 1 × 1');expect(text).toContain('Хочу похожее');await page.keyboard.press('Escape');if(isMobile)await expect(page.locator('.mobile-contact-bar')).toBeVisible();});

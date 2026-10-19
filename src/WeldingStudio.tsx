@@ -308,14 +308,7 @@ export default function WeldingStudio() {
         </p>
         <div className="studio-layout">
           <div className="studio-settings">
-            <label>
-              Название проекта
-              <input
-                maxLength={70}
-                value={project.name}
-                onChange={(e) => update("name", e.target.value)}
-              />
-            </label>
+
             <div className="studio-kinds" aria-label="Тип конструкции">
               {Object.entries(projectKinds).map(([key, label]) => (
                 <button
@@ -324,10 +317,18 @@ export default function WeldingStudio() {
                   aria-pressed={project.kind === key}
                   onClick={() => update("kind", key as WeldingProject["kind"])}
                 >
-                  {label}
+                  <svg viewBox="0 0 100 66" aria-hidden="true"><path d={key==='canopy'?'M10 24 L50 8 L90 24 L90 58 M10 58 L10 24 L90 24 M30 20 L30 58 M70 20 L70 58':key==='stairs'?'M10 58 L10 48 L30 48 L30 38 L50 38 L50 28 L70 28 L70 18 L90 18 M12 38 L88 8 M18 36 L18 49 M50 24 L50 38 M82 12 L82 21':key==='fence'?'M10 60 L10 10 M90 60 L90 10 M10 20 L90 20 M10 50 L90 50 M25 20 L25 50 M42 20 L42 50 M58 20 L58 50 M75 20 L75 50':key==='gate'?'M8 58 L8 8 M92 58 L92 8 M13 15 L87 15 L87 53 L13 53 Z M50 15 L50 53 M20 48 L43 20 M57 48 L80 20':'M15 50 L15 20 L65 10 L85 25 L85 55 L35 63 L15 50 M15 20 L35 33 L85 25 M35 33 L35 63 M65 10 L65 42 L85 55 M15 50 L65 42 M35 63 L65 42 M35 33 L65 10'}/></svg>{label}
                 </button>
               ))}
             </div>
+            <label>
+              Название проекта
+              <input
+                maxLength={70}
+                value={project.name}
+                onChange={(e) => update("name", e.target.value)}
+              />
+            </label>
             <div className="studio-dimensions">
               {(
                 [
@@ -343,7 +344,7 @@ export default function WeldingStudio() {
                     1,
                   ],
                 ] as const
-              ).map(([key, label, min, max, step]) => (
+              ).filter(([key])=>key!=="profile"&&key!=="sections").map(([key, label, min, max, step]) => (
                 <label key={key} htmlFor={"studio-" + key}>
                   {label}
                   <input
@@ -389,6 +390,7 @@ export default function WeldingStudio() {
                 </select>
               </label>
             )}
+            <details className="studio-advanced"><summary>Дополнительные настройки</summary><p>Профиль, количество элементов и покрытие. Если не уверены — оставьте варианты модели и обсудите их с мастером.</p><div className="studio-dimensions">{([['profile','Профиль, мм',20,150,5],['sections',project.kind==='stairs'?'Ступени':'Секции',2,12,1]] as const).map(([key,label,min,max,step])=><label key={key} htmlFor={'studio-'+key}>{label}<input id={'studio-'+key} type="range" min={min} max={max} step={step} value={project[key]} onChange={e=>update(key,Number(e.target.value))}/><output htmlFor={'studio-'+key}>{project[key]}</output></label>)}</div>
             <div className="studio-finishes">
               <label>
                 Цвет металла
@@ -423,6 +425,7 @@ export default function WeldingStudio() {
               подъём, для навеса — высоту стоек. Глубина у ворот и ограждения
               справочная: модель показывает одну плоскую секцию.
             </small>
+            </details>
           </div>
           <div className="studio-visual">
             <div className="studio-stage" ref={scene}>

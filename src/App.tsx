@@ -41,6 +41,8 @@ import site from "../shared/site.json";
 import { api } from "./api";
 import { SERVER_ENABLED } from "./mode";
 import { initializeTelegram, telegramInitData } from "./telegram";
+import QuickRequest from "./QuickRequest";
+import "./experience.css";
 import { formatDraft, downloadText } from "./draft";
 import { orderSchema } from "../shared/validation.mjs";
 import { calculateEstimate } from "../shared/estimate.mjs";
@@ -291,7 +293,11 @@ function App() {
     contact: string;
     description: string;
     comment: string;
+    sizesUnknown?: boolean;
   } | null>(null);
+  const [requestKey,setRequestKey]=useState(0);
+  const [orderReference,setOrderReference]=useState("");
+  const [heroMotion,setHeroMotion]=useState(false);
   const [sending, setSending] = useState(false);
   const [trackingId, setTrackingId] = useState("");
   const [trackingKey, setTrackingKey] = useState("");
@@ -343,7 +349,9 @@ function App() {
     setEstimate(null);
     setEstimateError("");
   }
-  function openOrder(serviceId?: string) {
+  function openOrder(serviceId?: string, reference = "") {
+    setOrderReference(reference);
+    setRequestKey(k=>k+1);
     if (serviceId) changeInput({ ...input, serviceId });
     setSuccess(null);
     setDraftText("");
@@ -353,6 +361,8 @@ function App() {
     setOrderOpen(true);
     setMenuOpen(false);
   }
+  useEffect(()=>{const reduced=matchMedia("(prefers-reduced-motion: reduce)");const connection=(navigator as Navigator & {connection?:{saveData?:boolean;effectiveType?:string}}).connection;setHeroMotion(innerWidth>1000&&!reduced.matches&&!connection?.saveData&&!/2g/.test(connection?.effectiveType||""));const change=()=>setHeroMotion(innerWidth>1000&&!reduced.matches&&!connection?.saveData);reduced.addEventListener("change",change);return()=>reduced.removeEventListener("change",change)},[]);
+  useEffect(()=>{if(matchMedia("(prefers-reduced-motion: reduce)").matches||!("IntersectionObserver" in window))return;const observer=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting){entry.target.classList.add("reveal-visible");observer.unobserve(entry.target)}},{threshold:.08});document.querySelectorAll(".section-heading,.project-card,.process-step,.service-card").forEach(el=>{el.classList.add("reveal-pending");observer.observe(el)});return()=>observer.disconnect()},[filter]);
   function navigate() {
     setMenuOpen(false);
   }
@@ -545,35 +555,31 @@ function App() {
           />
           <div className="container hero-content">
             <div className="eyebrow">
-              <span className="orange-line" /> СВАРКА И МЕТАЛЛОКОНСТРУКЦИИ
+              <span className="orange-line" /> СВАРКА И МЕТАЛЛОКОНСТРУКЦИИ · МОСКВА И МО
             </div>
             <h1>
               Сварка,
               <br />
               которая <span>держит.</span>
             </h1>
-            <p className="hero-description">
-              Превращаем металл в надёжные решения.
-              <br />
-              От аккуратного шва до конструкции,
-              <br className="desktop-break" /> созданной под вашу задачу.
-            </p>
+            <p className="hero-description">Навесы, лестницы, ворота и сварочные работы<br className="desktop-break" /> по вашим размерам. Покажите идею — обсудим,<br className="desktop-break" /> как её изготовить и установить.</p>
+            {heroMotion&&<><video className="hero-real-video" autoPlay muted loop playsInline preload="none" poster={asset("media/staircase-platform.webp")} aria-hidden="true"><source src={asset("media/work-preview.mp4")} type="video/mp4"/></video><button type="button" className="hero-motion-toggle" onClick={()=>setHeroMotion(false)}>Остановить фоновое видео</button></>}
             <div className="hero-buttons">
               <button
                 className="button button-primary"
                 onClick={() => openOrder()}
               >
-                Заказать сварку <ArrowUpRight size={20} />
+                Обсудить с мастером <ArrowUpRight size={20} />
               </button>
-              <a href="#calculator" className="button button-outline">
-                Рассчитать стоимость <Plus size={18} />
+              <a href="#portfolio" className="button button-outline">
+                Посмотреть работы <ArrowDown size={18} />
               </a>
             </div>
             <div className="hero-trust">
               <ShieldCheck size={17} />
-              <span>Индивидуальный подход</span>
+              <span>Фото и видео реальных работ</span>
               <span className="dot">·</span>
-              <span>Внимание к деталям</span>
+              <span>Прямая связь с мастером</span>
             </div>
           </div>
           <div className="hero-caption">
@@ -737,8 +743,7 @@ function App() {
             </div>
             <div className="portfolio-grid">
               {visibleWorks.map((work, i) => (
-                <button
-                  key={work.id}
+                <article className="portfolio-item" key={work.id}><button
                   className={`project-card project-${i}`}
                   onClick={() => { setActiveProjectPhoto(null); setPhoto(work); }}
                 >
@@ -778,7 +783,7 @@ function App() {
                     </div>
                     <ArrowUpRight size={24} />
                   </div>
-                </button>
+                </button><button type="button" className="portfolio-order" onClick={()=>openOrder(work.category,`Хочу похожее: ${work.title}. ${new URL("#portfolio",location.href).href}`)}>Хочу похожее <ArrowUpRight size={17}/></button></article>
               ))}
             </div>
           </div>
@@ -879,7 +884,7 @@ function App() {
               </div>
               <InputFields value={input} onChange={changeInput} />
               <div className="estimate-result" aria-live="polite">
-                <span>ПРЕДВАРИТЕЛЬНАЯ СТОИМОСТЬ</span>
+                <span>РАСЧЁТ ПО ВАШЕЙ ЗАДАЧЕ</span>
                 <strong>
                   {estimate?.amount != null
                     ? `${new Intl.NumberFormat("ru-RU").format(estimate.amount)} ₽`
@@ -888,7 +893,7 @@ function App() {
                 <p>
                   {estimate?.amount != null
                     ? estimate.message
-                    : "Тарифы пока не настроены. Мастер подготовит расчёт после уточнения деталей."}
+                    : "Выберите работу и размеры. Мастер уточнит материалы, условия монтажа и подготовит стоимость."}
                 </p>
               </div>
               {estimateError && (
@@ -907,7 +912,7 @@ function App() {
                   ) : (
                     <Ruler size={18} />
                   )}{" "}
-                  Проверить расчёт
+                  Подготовить параметры для расчёта
                 </button>
                 <button
                   type="button"
@@ -986,6 +991,7 @@ function App() {
           </div>
         </section>
 
+        <section className="section working-terms"><div className="container"><div className="section-heading"><h2>Договоримся о деталях.<br/><span className="muted">До начала работ.</span></h2><p>Напишите мастеру — вместе уточним задачу и следующие шаги.</p></div><div className="terms-grid"><article><span>01 / МОСКВА И МО · ВЫЕЗД И ЗАМЕР</span><h3>Начните с идеи</h3><p>Точных размеров пока нет? Отправьте описание или фото в Telegram. Работаем по Москве и Московской области. Возможность выезда на ваш объект согласуем с мастером.</p></article><article><span>02 / СТОИМОСТЬ</span><h3>После уточнения задачи</h3><p>Материалы, изготовление, доставку и монтаж обсудим перед заказом. Формирование проекта не означает согласование цены.</p></article><article><span>03 / УСЛОВИЯ</span><h3>Зафиксируем договорённости</h3><p>Сроки, оплату и условия гарантии уточните у мастера до начала работ.</p></article></div></div></section>
         <section className="section faq-section" id="faq">
           <div className="container faq-layout">
             <div>
@@ -1106,8 +1112,8 @@ function App() {
             <div className="eyebrow">ТЕКСТ ЗАЯВКИ ГОТОВ</div>
             <h2>Осталось передать мастеру.</h2>
             <p className="notice">
-              Заявка ещё не отправлена. Скопируйте текст в переписку с мастером
-              или отправьте SMS. Получение, цену и сроки можно уточнить по
+              Заявка ещё не отправлена. Нажмите «Передать в Telegram» и подтвердите отправку мастеру. Также можно скопировать текст
+              или отправить SMS. Получение, цену и сроки можно уточнить по
               телефону.
             </p>
             <label className="field">
@@ -1120,8 +1126,9 @@ function App() {
               />
             </label>
             <div className="draft-actions">
+              <a className="button button-primary" href={`${masterTelegramUrl}?text=${encodeURIComponent(draftText)}`} target="_blank" rel="noopener noreferrer"><Send size={17} />Передать в Telegram</a>
               <button
-                className="button button-primary"
+                className="button button-outline"
                 onClick={async () => {
                   try {
                     if (!navigator.clipboard) throw new Error();
@@ -1146,7 +1153,7 @@ function App() {
                 <ArrowDown size={17} />
                 Сохранить текст
               </button>
-              <a className="button button-primary" href={`${masterTelegramUrl}?text=${encodeURIComponent(draftText)}`} target="_blank" rel="noopener noreferrer"><Send size={17} />Передать в Telegram</a>
+
               <a
                 className="button button-outline"
                 href={`sms:${phone}?body=${encodeURIComponent(draftText)}`}
@@ -1246,13 +1253,11 @@ function App() {
             <div className="eyebrow">НАЧНЁМ С ВАШЕЙ ЗАДАЧИ</div>
             <h2>Обсудим проект.</h2>
             <p className="modal-intro">
-              Заполните детали — они помогут мастеру подготовиться к разговору.
+              Три коротких шага до сообщения мастеру. Можно начать без точных размеров.
             </p>
             {!SERVER_ENABLED && (
               <div className="notice">
-                Форма подготовит текст заявки на вашем устройстве. Затем вы сами
-                отправите его мастеру. Автоматической отправки и отслеживания
-                статуса здесь нет.
+                Соберём понятное сообщение мастеру. В конце вы проверите его и подтвердите отправку в Telegram.
               </div>
             )}
             {SERVER_ENABLED && apiState === "offline" && (
@@ -1273,6 +1278,7 @@ function App() {
                   сервере; для связи также используйте Telegram.
                 </div>
               )}
+            {!SERVER_ENABLED ? <QuickRequest key={requestKey} initial={{...input,...(draftValues||{})}} reference={orderReference} onPrepared={draft=>{setDraftValues(draft);setDraftText(formatDraft(draft));setDraftNotice("");setSubmitError("")}}/> : (
             <form
               className="order-form"
               onSubmit={submitOrder}
@@ -1383,6 +1389,7 @@ function App() {
                 </p>
               </fieldset>
             </form>
+            )}
           </>
         )}
       </Modal>
@@ -1482,6 +1489,7 @@ function App() {
         </Modal>
       )}
 
+      <div className="mobile-contact-bar" aria-label="Быстрая связь"><a href={masterTelegramUrl} target="_blank" rel="noopener noreferrer"><Send size={18}/>Написать</a><a href={`tel:${phone}`}><span aria-hidden="true">↗</span>Позвонить</a><a href="#constructor"><Box size={18}/>Мой проект</a></div>
       <Modal
         open={!!photo}
         onClose={() => setPhoto(null)}
@@ -1523,10 +1531,10 @@ function App() {
               className="button button-primary"
               onClick={() => {
                 setPhoto(null);
-                openOrder(photo.category);
+                openOrder(photo.category, `Хочу похожее: ${photo.title}. ${new URL("#portfolio", location.href).href}`);
               }}
             >
-              Обсудить похожий проект <ArrowUpRight size={18} />
+              Хочу похожее <ArrowUpRight size={18} />
             </button>
           </div>
         )}
