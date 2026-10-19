@@ -23,6 +23,13 @@ for (const [name, worker] of [["source", source], ["bundle", bundled]]) {
     assert.match(body.text, /ручной отправки/);
     assert.equal(body.reply_markup.inline_keyboard[0][0].web_app.url, "https://trofimmokrov-netizen.github.io/aik-base/");
     assert.equal(body.parse_mode, undefined);
+    const buttons=body.reply_markup.inline_keyboard.flat();
+    assert.ok(buttons.some(b=>b.web_app?.url.endsWith('#constructor')));
+    assert.ok(buttons.some(b=>b.url==='https://t.me/+79349999779'));
+    for(const command of ['/constructor','/camera','/portfolio','/about','/menu']){
+      const reply=await(await worker.fetch(request(update(command)),env)).json();
+      assert.ok(reply.text.length>40);assert.equal(reply.method,'sendMessage');
+    }
   });
   test(`${name}: commands do not promise delivery or statuses`, async () => {
     for (const text of ["/order", "/help", "Нужен навес"]) {

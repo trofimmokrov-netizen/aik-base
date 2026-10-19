@@ -1,4 +1,6 @@
 import {
+  lazy,
+  Suspense,
   useEffect,
   useRef,
   useState,
@@ -45,6 +47,8 @@ import { calculateEstimate } from "../shared/estimate.mjs";
 import rates from "../shared/rates.json";
 import type { EstimateInput, Estimate, Order, PublicConfig } from "./types";
 import type { PortfolioWork } from "./types";
+
+const WeldingStudio = lazy(() => import("./WeldingStudio"));
 
 const portfolio: PortfolioWork[] = portfolioContent;
 
@@ -495,6 +499,7 @@ function App() {
             <a href="#services" onClick={navigate}>
               Услуги
             </a>
+            <a href="#constructor" onClick={navigate}>3D-конструктор</a>
             <a href="#portfolio" onClick={navigate}>
               Проекты
             </a>
@@ -920,7 +925,9 @@ function App() {
           </div>
         </section>
 
-        <section className="section telegram-section">
+        <Suspense fallback={<section className="section"><div className="container">Загрузка конструктора…</div></section>}><WeldingStudio /></Suspense>
+
+        <section className="section telegram-section" id="telegram-bot">
           <div className="container telegram-layout">
             <div className="telegram-art" aria-hidden="true">
               <div className="orbit orbit-one" />
@@ -955,7 +962,7 @@ function App() {
                   </>
                 ) : (
                   <>
-                    Соберите параметры проекта в удобной форме.
+                    AIK BASE теперь и в Telegram: услуги, 3D-конструктор и примерка.
                     <br />
                     Скопируйте текст, отправьте его мастеру
                     <br className="desktop-break" /> в Telegram или обсудите всё по
@@ -965,15 +972,15 @@ function App() {
               </p>
               <a
                 className="button button-primary"
-                href={SERVER_ENABLED ? botUrl : masterTelegramUrl}
+                href={botUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {SERVER_ENABLED ? "Открыть Telegram-бота" : "Написать мастеру в Telegram"}{" "}
+                {"Открыть Telegram-бота"}{" "}
                 <ArrowUpRight size={20} />
               </a>
               <small className="telegram-handle">
-                {SERVER_ENABLED ? "@AikBaseOrder_Bot" : phoneDisplay}
+                {"@AikBaseOrder_Bot · услуги, 3D и заявка мастеру"}
               </small>
             </div>
           </div>
@@ -1051,6 +1058,8 @@ function App() {
               <a href="#services">Услуги</a>
               <a href="#portfolio">Проекты</a>
               <a href="#calculator">Калькулятор</a>
+              <a href="#constructor">3D-конструктор</a>
+              <a href={botUrl} target="_blank" rel="noopener noreferrer">Telegram-бот</a>
             </div>
             <div className="footer-column">
               <span>НА СВЯЗИ</span>

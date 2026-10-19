@@ -7,6 +7,11 @@ export const sitesBotCommands = [
   { command: "contact", description: "Контакты" },
   { command: "help", description: "Помощь" },
   { command: "id", description: "Мой Telegram ID" },
+  { command: "menu", description: "Главное меню" },
+  { command: "constructor", description: "Собрать 3D-проект" },
+  { command: "camera", description: "Камера и примерка" },
+  { command: "portfolio", description: "Фото и видео работ" },
+  { command: "about", description: "О мастерской AIK BASE" },
 ];
 
 function checkedUrl(value, rootOnly) {

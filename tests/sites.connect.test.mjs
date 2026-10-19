@@ -77,7 +77,7 @@ test("Sites connection validates deployed handler and registers the intended bot
     "getMe", "setMyCommands", "setChatMenuButton", "setWebhook", "getWebhookInfo", "getChatMenuButton",
   ]);
   const commands = calls.find(({ method }) => method === "setMyCommands").body.commands;
-  assert.deepEqual(commands.map(({ command }) => command), ["start", "services", "order", "contact", "help", "id"]);
+  assert.deepEqual(commands.map(({ command }) => command), ["start", "services", "order", "contact", "help", "id", "menu", "constructor", "camera", "portfolio", "about"]);
   assert.deepEqual(calls.find(({ method }) => method === "setChatMenuButton").body.menu_button, {
     type: "web_app", text: "AIK BASE", web_app: { url: config.miniAppUrl },
   });

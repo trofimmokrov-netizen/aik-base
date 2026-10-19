@@ -4,6 +4,7 @@ import App from "./App";
 import "@fontsource-variable/manrope";
 import "@fontsource-variable/unbounded";
 import "./styles.css";
+import "./welding-studio.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

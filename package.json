@@ -26,7 +26,8 @@
     "telegram:configure": "node --env-file-if-exists=.env scripts/configure-telegram.mjs",
     "build:sites-bot": "vite build --config sites/vite.config.mjs",
     "test:sites-bot": "npm run build:sites-bot && node --test tests/sites.bot.test.mjs tests/sites.connect.test.mjs",
-    "sites:connect": "node --use-env-proxy --use-system-ca --env-file-if-exists=.env scripts/connect-sites-bot.mjs"
+    "sites:connect": "node --use-env-proxy --use-system-ca --env-file-if-exists=.env scripts/connect-sites-bot.mjs",
+    "test:e2e:studio": "playwright test --config playwright.studio.config.ts"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",
@@ -38,6 +39,7 @@
     "lucide-react": "^0.468.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "three": "^0.186.1",
     "zod": "^4.1.0"
   },
   "devDependencies": {
@@ -45,6 +47,7 @@
     "@types/node": "^24.0.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^5.0.0",
     "jsonc-parser": "^3.3.1",
     "typescript": "~5.9.3",
