@@ -13,7 +13,7 @@ export default function QuickRequest({
   onPrepared: (draft: DraftInput) => void;
 }) {
   const [step, setStep] = useState(0),
-    [input, setInput] = useState(initial),
+    [input, setInput] = useState<EstimateInput>(() => ({serviceId:initial.serviceId,metal:initial.metal,width:initial.width,height:initial.height,quantity:initial.quantity,onsite:initial.onsite})),
     [description, setDescription] = useState(initial.description || reference),
     [name, setName] = useState(initial.name || ""),
     [contact, setContact] = useState(initial.contact || ""),

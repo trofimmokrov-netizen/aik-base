@@ -88,6 +88,11 @@ test("manual request contains project data and is never reported as sent", async
   await expect(dialog.getByLabel("Что нужно сделать?")).toHaveValue(
     "Лестница и перила по индивидуальному эскизу",
   );
+  await dialog.getByRole("button",{name:"Далее"}).click();
+  await dialog.getByRole("button",{name:"Далее"}).click();
+  await dialog.locator('[name="consent"]').check();
+  await dialog.getByRole("button",{name:"Подготовить текст заявки"}).click();
+  await expect(dialog.getByLabel("Текст заявки")).toHaveValue(/Лестница и перила по индивидуальному эскизу/);
   expect(apiCalls).toEqual([]);
 });
 
