@@ -1,0 +1,24 @@
+name: Connect Telegram bot
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: aik-base-telegram-connection
+  cancel-in-progress: false
+jobs:
+  connect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify deployed service and connect Telegram
+        run: npm run sites:connect
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
+          PUBLIC_API_URL: ${{ vars.SITES_BOT_URL }}
+          MINI_APP_URL: https://trofimmokrov-netizen.github.io/aik-base/
