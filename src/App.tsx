@@ -268,6 +268,7 @@ function App() {
     "loading",
   );
   const [filter, setFilter] = useState("all");
+  const [activeProjectPhoto, setActiveProjectPhoto] = useState<string | null>(null);
   const [photo, setPhoto] = useState<(typeof portfolio)[number] | null>(null);
   const [privacy, setPrivacy] = useState(false);
   const [contact, setContact] = useState(false);
@@ -734,7 +735,7 @@ function App() {
                 <button
                   key={work.id}
                   className={`project-card project-${i}`}
-                  onClick={() => setPhoto(work)}
+                  onClick={() => { setActiveProjectPhoto(null); setPhoto(work); }}
                 >
                   <div
                     className={`project-image ${work.id === "assembly" ? "detail-image" : ""}`}
@@ -1480,7 +1481,7 @@ function App() {
       >
         {photo && (
           <div className="photo-view">
-            {photo.video ? (
+            {photo.video && !activeProjectPhoto ? (
               <video
                 key={photo.id}
                 controls
@@ -1494,12 +1495,16 @@ function App() {
                 <a href={asset(photo.video)}>Открыть видео</a>
               </video>
             ) : (
-              <img src={asset(photo.image)} alt={photo.description} />
+              <img src={asset(activeProjectPhoto || photo.image)} alt={photo.description} />
             )}
+            {photo.photos?.length ? <div className="project-media-switch" aria-label="Материалы проекта">
+              <button type="button" aria-pressed={!activeProjectPhoto} onClick={() => setActiveProjectPhoto(null)}>{photo.video ? "Видео с объекта" : "Главное фото"}</button>
+              {photo.photos.map((image, index) => <button type="button" key={image} aria-pressed={activeProjectPhoto === image} onClick={() => setActiveProjectPhoto(image)}>Фото {index + 1} · монтаж</button>)}
+            </div> : null}
             <span className="demo-label">
               {photo.demo
                 ? "ИЛЛЮСТРАЦИЯ · НЕ ВЫПОЛНЕННЫЙ ЗАКАЗ"
-                : photo.video
+                : photo.video && !activeProjectPhoto
                   ? "ВИДЕО С ОБЪЕКТА"
                   : "ФОТОГРАФИЯ ПРОЕКТА"}
             </span>

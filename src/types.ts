@@ -38,6 +38,7 @@ export type PortfolioWork = {
   label: string;
   image: string;
   video?: string;
+  photos?: string[];
   position: string;
   demo: boolean;
   description: string;

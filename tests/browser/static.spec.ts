@@ -128,7 +128,8 @@ test("static navigation, portfolio video and phone work on desktop and mobile", 
   await page
     .getByRole("button", { name: "Лестницы и перила", exact: true })
     .click();
-  await page.locator(".project-card").click();
+  await expect(page.locator(".project-card")).toHaveCount(2);
+  await page.locator(".project-card").first().click();
   const gallery = page.getByRole("dialog", { name: "Просмотр проекта" });
   await expect(gallery.locator("video")).toBeVisible();
   await expect
@@ -138,6 +139,11 @@ test("static navigation, portfolio video and phone work on desktop and mobile", 
         .evaluate((el) => (el as HTMLVideoElement).readyState),
     )
     .toBeGreaterThanOrEqual(1);
+  await gallery.getByRole("button", { name: "Фото 1 · монтаж" }).click();
+  await expect(gallery.locator("video")).toHaveCount(0);
+  await expect(gallery.locator('img[src$="platform-frame.webp"]')).toBeVisible();
+  await gallery.getByRole("button", { name: "Видео с объекта", exact: true }).click();
+  await expect(gallery.locator("video")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(gallery).not.toBeVisible();
   await expect(page.locator('footer a[href="tel:+79349999779"]')).toHaveText(
