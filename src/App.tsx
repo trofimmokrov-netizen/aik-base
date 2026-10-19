@@ -451,6 +451,7 @@ function App() {
   const botUrl = `https://t.me/${site.botUsername}`;
   const phone = config?.phone || site.phone;
   const phoneDisplay = phone === site.phone ? site.phoneDisplay : phone;
+  const masterTelegramUrl = `https://t.me/+${phone.replace(/\D/g, "")}`;
   const realWorks = portfolio.some((work) => !work.demo);
 
   function saveReceipt() {
@@ -956,18 +957,18 @@ function App() {
                     Соберите параметры проекта в удобной форме.
                     <br />
                     Скопируйте текст, отправьте его мастеру
-                    <br className="desktop-break" /> или обсудите всё по
+                    <br className="desktop-break" /> в Telegram или обсудите всё по
                     телефону.
                   </>
                 )}
               </p>
               <a
                 className="button button-primary"
-                href={SERVER_ENABLED ? botUrl : `tel:${phone}`}
+                href={SERVER_ENABLED ? botUrl : masterTelegramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {SERVER_ENABLED ? "Открыть Telegram-бота" : "Позвонить мастеру"}{" "}
+                {SERVER_ENABLED ? "Открыть Telegram-бота" : "Написать мастеру в Telegram"}{" "}
                 <ArrowUpRight size={20} />
               </a>
               <small className="telegram-handle">
@@ -1058,6 +1059,7 @@ function App() {
                   Telegram <ArrowUpRight size={14} />
                 </a>
               )}
+              <a href={masterTelegramUrl} target="_blank" rel="noopener noreferrer">Написать мастеру в Telegram <ArrowUpRight size={14} /></a>
               <button onClick={() => setContact(true)}>Контакты мастера</button>
               {SERVER_ENABLED && (
                 <button onClick={() => setTracking(true)}>Мои заявки</button>
@@ -1134,6 +1136,7 @@ function App() {
                 <ArrowDown size={17} />
                 Сохранить текст
               </button>
+              <a className="button button-primary" href={`${masterTelegramUrl}?text=${encodeURIComponent(draftText)}`} target="_blank" rel="noopener noreferrer"><Send size={17} />Передать в Telegram</a>
               <a
                 className="button button-outline"
                 href={`sms:${phone}?body=${encodeURIComponent(draftText)}`}
@@ -1535,6 +1538,7 @@ function App() {
             <Send size={18} /> @AikBaseOrder_Bot
           </a>
         )}
+        <a className="button button-primary full-width" href={masterTelegramUrl} target="_blank" rel="noopener noreferrer"><Send size={18} />Написать мастеру в Telegram</a>
         {phone && (
           <a
             className="contact-detail"
@@ -1551,7 +1555,7 @@ function App() {
         <p className="form-footnote">
           {SERVER_ENABLED
             ? "Чат с ботом не является прямым чатом мастера. Для передачи задачи используйте форму заявки."
-            : "Форма подготовит текст заявки. Передайте его мастеру самостоятельно или обсудите задачу по телефону."}
+            : "Форма подготовит текст заявки. Отправьте его мастеру в Telegram или обсудите задачу по телефону. Для отправки сообщения нажмите кнопку отправки в Telegram."}
         </p>
         <button
           className="button button-outline full-width"

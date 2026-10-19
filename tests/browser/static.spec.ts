@@ -64,6 +64,10 @@ test("manual request contains project data and is never reported as sent", async
   await expect(dialog.getByLabel("Текст заявки")).toHaveValue(
     /Лестницы и перила/,
   );
+  const telegram = dialog.getByRole("link", { name: "Передать в Telegram" });
+  const telegramUrl = new URL((await telegram.getAttribute("href"))!);
+  expect(telegramUrl.origin + telegramUrl.pathname).toBe("https://t.me/+79349999779");
+  expect(telegramUrl.searchParams.get("text")).toContain("Лестница и перила по индивидуальному эскизу");
   const sms = dialog.getByRole("link", { name: "Открыть SMS" });
   expect(decodeURIComponent((await sms.getAttribute("href"))!)).toContain(
     "sms:+79349999779?body=AIK BASE",
